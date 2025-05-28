@@ -1,0 +1,3 @@
+/Users/fariya/Downloads/oopL/build/CMakeFiles/atm_server.dir
+/Users/fariya/Downloads/oopL/build/CMakeFiles/edit_cache.dir
+/Users/fariya/Downloads/oopL/build/CMakeFiles/rebuild_cache.dir

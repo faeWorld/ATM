@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ATM Interface</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      /* Custom styles for the ATM frame and elements */
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: #e2e8f0; /* Light gray background */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        margin: 0;
+        overflow: hidden; /* Prevent scrollbars */
+      }
+
+      .atm-frame {
+        background-color: #cbd5e1; /* Grayish blue for the frame */
+        border-radius: 2rem; /* More rounded corners for the overall ATM */
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        padding: 2rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        border: 4px solid #94a3b8; /* Darker border for depth */
+      }
+
+      .atm-screen-container {
+        background-color: #334155; /* Darker background for the screen area */
+        border-radius: 1rem;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        border: 3px solid #1e293b; /* Darker border for screen depth */
+        box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+        width: 100%;
+        max-width: 400px; /* Limit screen width */
+        box-sizing: border-box;
+      }
+
+      .atm-screen {
+        background-color: #000000; /* Black screen background */
+        color: #ffffff; /* Default text color */
+        padding: 1rem;
+        border-radius: 0.5rem;
+        height: 200px; /* Increased height for more content */
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        font-size: 1.1rem;
+        line-height: 1.4;
+        overflow-y: auto; /* Allow vertical scrolling for history */
+        overflow-x: hidden; /* Prevent horizontal scrolling */
+      }
+
+      .screen-message {
+        color: #ffffff; /* Default white */
+      }
+
+      .screen-message.green {
+        color: #22c55e; /* Tailwind green-500 */
+      }
+
+      /* New style for amount exceed error message */
+      .screen-message.green-error {
+        color: #22c55e; /* Green as requested for error */
+        font-weight: bold;
+      }
+
+      /* New style for red exit message */
+      .screen-message.red-exit {
+        color: #ef4444; /* Tailwind red-500 */
+        font-weight: bold;
+        margin-top: 1rem; /* One line away */
+      }
+
+      /* New style for green back message */
+      .screen-message.green-back {
+        color: #22c55e; /* Green as requested for back */
+        font-weight: bold;
+        margin-top: 1rem; /* One line away */
+      }
+
+      /* New style for centered and bold welcome message */
+      .screen-message.centered-bold {
+        text-align: center;
+        font-weight: bold;
+      }
+
+      /* New style for biometric success message */
+      .screen-message.biometric-success {
+        color: #22c55e; /* Green */
+        font-weight: bold;
+      }
+
+      /* New style for centered identification options */
+      .screen-message.centered-option {
+        text-align: center;
+      }
+
+      /* New style for general centered messages */
+      .screen-message.centered-message {
+        text-align: center;
+      }
+
+      /* New style for enlarged input text */
+      .screen-message.large-input-text {
+        font-size: 1.5rem; /* Adjust as needed for "a bit bigger" */
+      }
+
+      .keypad-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+        margin-right: 2rem; /* Space between keypad and slots */
+      }
+
+      .keypad-button {
+        background-color: #64748b; /* Slate-500 for buttons */
+        color: #ffffff;
+        font-size: 1.5rem;
+        font-weight: bold;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 70px; /* Fixed width for keypad buttons */
+        height: 70px; /* Fixed height for keypad buttons */
+        border-radius: 50%; /* Make them circular */
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        cursor: pointer;
+        transition: background-color 0.2s, transform 0.1s;
+        border: 2px solid #475569; /* Darker border for button depth */
+      }
+
+      .keypad-button:hover {
+        background-color: #475569; /* Darker on hover */
+        transform: translateY(-2px);
+      }
+
+      .keypad-button:active {
+        background-color: #334155;
+        transform: translateY(0);
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+      }
+
+      /* New style for the standalone Enter button */
+      .enter-button-standalone {
+        background-color: #64748b; /* Inherit button style */
+        color: #ffffff;
+        font-size: 1.4rem;
+        font-weight: bold;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 200px; /* Match slot width */
+        height: 60px; /* Rectangular shape */
+        border-radius: 0.75rem; /* Slightly rounded corners */
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        cursor: pointer;
+        transition: background-color 0.2s, transform 0.1s;
+        border: 2px solid #475569;
+        margin-top: 1.5rem; /* Space from biometric scanner */
+      }
+
+      .enter-button-standalone:hover {
+        background-color: #475569;
+        transform: translateY(-2px);
+      }
+
+      .enter-button-standalone:active {
+        background-color: #334155;
+        transform: translateY(0);
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+      }
+
+      .keypad-button.zero {
+        border-radius: 50%; /* Ensure 0 is circular */
+      }
+
+      .slots-container {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+      }
+
+      .atm-slot {
+        background-color: #94a3b8; /* Slate-400 for slots */
+        border-radius: 0.5rem;
+        padding: 1rem;
+        width: 200px; /* Fixed width for slots */
+        text-align: center;
+        font-size: 0.9rem;
+        color: #334155;
+        font-weight: bold;
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+        border: 2px solid #64748b;
+      }
+
+      .slot-line {
+        background-color: #334155;
+        height: 4px;
+        width: 80%;
+        margin: 0.5rem auto;
+        border-radius: 2px;
+      }
+
+      /* New class for cash dispensing visual effect */
+      .cash-dispensing {
+        background-color: #22c55e; /* Green color for dispensing */
+        transition: background-color 0.3s ease-in-out;
+      }
+
+      .atm-content {
+        display: flex;
+        gap: 2rem;
+        margin-top: 2rem;
+      }
+
+      /* Responsive adjustments */
+      @media (max-width: 768px) {
+        .atm-frame {
+          padding: 1rem;
+          margin: 1rem;
+        }
+        .atm-screen-container {
+          max-width: 100%;
+        }
+        .atm-content {
+          flex-direction: column;
+          align-items: center;
+          gap: 1.5rem;
+        }
+        .keypad-grid {
+          margin-right: 0;
+        }
+        .keypad-button {
+          width: 60px;
+          height: 60px;
+          font-size: 1.3rem;
+        }
+        .slots-container {
+          width: 100%;
+          align-items: center;
+        }
+        .atm-slot {
+          width: 80%; /* Adjust slot width for smaller screens */
+          max-width: 250px;
+        }
+        .enter-button-standalone {
+          width: 80%; /* Adjust width for smaller screens */
+        }
+      }
+    </style>
+  </head>
+  <body class="bg-gray-200 flex items-center justify-center min-h-screen p-4">
+    <div class="atm-frame">
+      <div class="atm-screen-container">
+        <div id="atmScreen" class="atm-screen"></div>
+        <div id="userIdDisplay" class="text-white text-sm mt-2">
+          Account: Not logged in
+        </div>
+      </div>
+
+      <div class="atm-content">
+        <div class="keypad-grid">
+          <div class="keypad-button" data-value="1">1</div>
+          <div class="keypad-button" data-value="2">2</div>
+          <div class="keypad-button" data-value="3">3</div>
+          <div class="keypad-button" data-value="4">4</div>
+          <div class="keypad-button" data-value="5">5</div>
+          <div class="keypad-button" data-value="6">6</div>
+          <div class="keypad-button" data-value="7">7</div>
+          <div class="keypad-button" data-value="8">8</div>
+          <div class="keypad-button" data-value="9">9</div>
+          <div class="keypad-button" data-value="C">CLR</div>
+          <div class="keypad-button zero" data-value="0">0</div>
+          <div class="keypad-button" data-value=".">.</div>
+        </div>
+
+        <div class="slots-container">
+          <div id="cashSlot" class="atm-slot">
+            Take cash here
+            <div class="slot-line"></div>
+          </div>
+          <div class="atm-slot">
+            Card Reader
+            <div class="slot-line"></div>
+          </div>
+          <div class="enter-button-standalone" data-value="E">Enter</div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // ATM States
+      const ATM_STATE = {
+        ENTER_ACCOUNT: 0,
+        ENTER_PIN: 1,
+        MAIN_MENU: 2,
+        PROCESSING: 3,
+        EXIT: 4,
+        DISPLAY_BALANCE_RESULT: 5,
+        WITHDRAW_MENU: 6,
+        WITHDRAW_OTHER_AMOUNT_PROMPT: 7,
+        DISPLAY_WITHDRAWAL_RESULT: 8,
+        DEPOSIT_PROMPT: 9,
+        DISPLAY_DEPOSIT_RESULT: 10,
+        VIEW_HISTORY: 11,
+        DISPENSE_CASH: 12,
+      };
+
+      // Global variables
+      let currentState = ATM_STATE.ENTER_ACCOUNT;
+      let currentInput = "";
+      let authenticatedAccount = null;
+      let sessionToken = null;
+
+      // DOM Elements
+      const atmScreen = document.getElementById("atmScreen");
+      const keypadButtons = document.querySelectorAll(
+        ".keypad-button, .enter-button-standalone"
+      );
+      const cashSlot = document.getElementById("cashSlot");
+      const userIdDisplay = document.getElementById("userIdDisplay");
+
+      // Backend API endpoints
+      const API = {
+        BASE_URL: "http://localhost:18080",
+        LOGIN: "/api/login",
+        LOGOUT: "/api/logout",
+        BALANCE: "/api/balance",
+        WITHDRAW: "/api/withdraw",
+        DEPOSIT: "/api/deposit",
+        HISTORY: "/api/history",
+      };
+
+      // API Functions
+      async function apiRequest(endpoint, method = "GET", body = null) {
+        const headers = { "Content-Type": "application/json" };
+        if (sessionToken) headers["X-Session-Token"] = sessionToken;
+        const options = { method, headers };
+        if (body) options.body = JSON.stringify(body);
+        try {
+          const response = await fetch(API.BASE_URL + endpoint, options);
+          // Return empty object for 204 responses
+          if (response.status === 204) {
+            return { status: 204 };
+          }
+          const data = await response.json();
+          return { status: response.status, ...data };
+        } catch (error) {
+          console.error('API Error:', error);
+          return { error: "Network error occurred" };
+        }
+      }
+
+      async function login(accountNumber, pin) {
+        return await apiRequest(API.LOGIN, "POST", { accountNumber, pin });
+      }
+      async function logout() {
+        await apiRequest(API.LOGOUT, "POST");
+        authenticatedAccount = null;
+        sessionToken = null;
+        userIdDisplay.textContent = "Account: Not logged in";
+      }
+      async function getBalance() {
+        return await apiRequest(API.BALANCE);
+      }
+      async function withdraw(amount) {
+        return await apiRequest(API.WITHDRAW, "POST", { amount });
+      }
+      async function deposit(amount) {
+        return await apiRequest(API.DEPOSIT, "POST", { amount });
+      }
+      async function getHistory() {
+        return await apiRequest(API.HISTORY);
+      }
+
+      // Screen Update Functions
+      function updateScreen(messages, errorType = null) {
+        atmScreen.innerHTML = "";
+        messages.forEach((msg, index) => {
+          const p = document.createElement("p");
+          p.textContent = msg;
+          if (msg === "Welcome to ATM!") {
+            p.classList.add("screen-message", "green", "centered-bold");
+          } else if (
+            currentState === ATM_STATE.ENTER_ACCOUNT &&
+            msg.startsWith("Enter account number:")
+          ) {
+            p.classList.add("screen-message", "centered-message");
+          } else if (currentState === ATM_STATE.ENTER_ACCOUNT && index === 3) {
+            p.classList.add(
+              "screen-message",
+              "centered-message",
+              "large-input-text"
+            );
+          } else if (msg.startsWith("PIN:")) {
+            const actualPinInput = msg.substring(msg.indexOf(":") + 2);
+            p.textContent = "PIN: " + "*".repeat(actualPinInput.length);
+            p.classList.add("screen-message");
+          } else if (msg.startsWith("Press 0 for EXIT")) {
+            p.classList.add("screen-message", "red-exit");
+          } else if (msg.startsWith("Press '.' to BACK")) {
+            p.classList.add("screen-message", "green-back");
+          } else if (
+            errorType &&
+            (msg.includes("Insufficient funds.") ||
+              msg.includes("ATM has insufficient cash.") ||
+              msg.includes("Please enter another amount."))
+          ) {
+            p.classList.add("screen-message", "green-error");
+          } else {
+            p.classList.add("screen-message");
+          }
+          atmScreen.appendChild(p);
+        });
+      }
+
+      function displayState() {
+        const messages = [];
+        switch (currentState) {
+          case ATM_STATE.ENTER_ACCOUNT:
+            messages.push("Welcome to ATM!");
+            messages.push("");
+            messages.push("Enter account number:");
+            messages.push(currentInput);
+            messages.push("");
+            break;
+          case ATM_STATE.ENTER_PIN:
+            messages.push("Enter PIN:");
+            messages.push("");
+            messages.push("Account: " + currentInput);
+            messages.push("PIN: " + "*".repeat(currentInput.length));
+            break;
+          case ATM_STATE.MAIN_MENU:
+            messages.push("Welcome " + authenticatedAccount.userName + "!");
+            messages.push("What would you like to do?");
+            messages.push("");
+            messages.push("1. View my balance");
+            messages.push("2. Withdraw cash");
+            messages.push("3. Deposit funds");
+            messages.push("4. View History");
+            messages.push("0. Exit");
+            break;
+          case ATM_STATE.DISPLAY_BALANCE_RESULT:
+            messages.push("Your current balance is:");
+            messages.push("");
+            messages.push("$" + currentInput);
+            messages.push("");
+            messages.push("Press '.' to BACK");
+            break;
+          case ATM_STATE.WITHDRAW_MENU:
+            messages.push("Withdraw Cash");
+            messages.push("");
+            messages.push("Enter amount to withdraw:");
+            messages.push(currentInput);
+            messages.push("");
+            messages.push("Press '.' to BACK");
+            break;
+          case ATM_STATE.DISPLAY_WITHDRAWAL_RESULT:
+            messages.push(currentInput);
+            messages.push("");
+            messages.push("Press '.' to BACK");
+            break;
+          case ATM_STATE.DEPOSIT_PROMPT:
+            messages.push("Deposit Funds");
+            messages.push("");
+            messages.push("Enter amount to deposit:");
+            messages.push(currentInput);
+            messages.push("");
+            messages.push("Press '.' to BACK");
+            break;
+          case ATM_STATE.DISPLAY_DEPOSIT_RESULT:
+            messages.push(currentInput);
+            messages.push("");
+            messages.push("Press '.' to BACK");
+            break;
+          case ATM_STATE.VIEW_HISTORY:
+            messages.push("Transaction History");
+            messages.push("");
+            if (Array.isArray(currentInput)) {
+              currentInput.forEach((item) => messages.push(item));
+            } else {
+              messages.push(currentInput);
+            }
+            messages.push("");
+            messages.push("Press '.' to BACK");
+            break;
+          case ATM_STATE.EXIT:
+            messages.push("Thank you for using the ATM!");
+            messages.push("");
+            messages.push("You have been logged out.");
+            break;
+        }
+        updateScreen(messages);
+      }
+
+      // Event Handlers
+      async function handleKeypadClick(value) {
+        if (
+          currentState === ATM_STATE.PROCESSING ||
+          currentState === ATM_STATE.EXIT
+        )
+          return;
+        if (value === "C") {
+          currentInput = "";
+          updateScreen(["Input cleared."]);
+          setTimeout(displayState, 1000);
+          return;
+        }
+        // Handle state-specific actions
+        switch (currentState) {
+          case ATM_STATE.ENTER_ACCOUNT:
+            if (value === "E") {
+              if (!currentInput) return;
+              window._accountNumber = currentInput;
+              currentState = ATM_STATE.ENTER_PIN;
+              currentInput = "";
+              displayState();
+            } else if (value.match(/[0-9]/)) {
+              currentInput += value;
+              displayState();
+            }
+            break;
+          case ATM_STATE.ENTER_PIN:
+            if (value === "E") {
+              if (!currentInput) return;
+              currentState = ATM_STATE.PROCESSING;
+              updateScreen(["Verifying credentials..."]);
+              const result = await login(window._accountNumber, currentInput);
+              if (result.success) {
+                authenticatedAccount = result;
+                sessionToken = result.token;
+                currentInput = "";
+                currentState = ATM_STATE.MAIN_MENU;
+                userIdDisplay.textContent = `Account: ${authenticatedAccount.accountNumber}`;
+                displayState();
+              } else {
+                updateScreen([
+                  result.error || "Invalid credentials.",
+                  "Please try again.",
+                ]);
+                currentInput = "";
+                currentState = ATM_STATE.ENTER_ACCOUNT;
+                setTimeout(displayState, 2000);
+              }
+            } else if (value.match(/[0-9]/)) {
+              currentInput += value;
+              displayState();
+            }
+            break;
+          case ATM_STATE.MAIN_MENU:
+            if (value === "0") {
+              await logout();
+              currentState = ATM_STATE.EXIT;
+              displayState();
+              setTimeout(() => {
+                currentState = ATM_STATE.ENTER_ACCOUNT;
+                currentInput = "";
+                displayState();
+              }, 2000);
+            } else if (value === "1") {
+              currentState = ATM_STATE.PROCESSING;
+              updateScreen(["Fetching balance..."]);
+              const result = await getBalance();
+              if (result.success) {
+                currentInput = result.balance;
+                currentState = ATM_STATE.DISPLAY_BALANCE_RESULT;
+              } else {
+                currentInput = result.error || "Error fetching balance.";
+                currentState = ATM_STATE.DISPLAY_BALANCE_RESULT;
+              }
+              displayState();
+            } else if (value === "2") {
+              currentInput = "";
+              currentState = ATM_STATE.WITHDRAW_MENU;
+              displayState();
+            } else if (value === "3") {
+              currentInput = "";
+              currentState = ATM_STATE.DEPOSIT_PROMPT;
+              displayState();
+            } else if (value === "4") {
+              currentState = ATM_STATE.PROCESSING;
+              updateScreen(["Fetching history..."]);
+              const result = await getHistory();
+              if (result.success) {
+                // TODO: Replace with real history if available
+                currentInput = ["Current Balance: $" + result.balance];
+              } else {
+                currentInput = [result.error || "Error fetching history."];
+              }
+              currentState = ATM_STATE.VIEW_HISTORY;
+              displayState();
+            }
+            break;
+          case ATM_STATE.DISPLAY_BALANCE_RESULT:
+          case ATM_STATE.DISPLAY_WITHDRAWAL_RESULT:
+          case ATM_STATE.DISPLAY_DEPOSIT_RESULT:
+          case ATM_STATE.VIEW_HISTORY:
+            if (value === ".") {
+              currentInput = "";
+              currentState = ATM_STATE.MAIN_MENU;
+              displayState();
+            }
+            break;
+          case ATM_STATE.WITHDRAW_MENU:
+            if (value === ".") {
+              currentInput = "";
+              currentState = ATM_STATE.MAIN_MENU;
+              displayState();
+            } else if (value === "E") {
+              if (!currentInput) return;
+              currentState = ATM_STATE.PROCESSING;
+              updateScreen(["Processing withdrawal..."]);
+              const amount = parseFloat(currentInput);
+              if (isNaN(amount) || amount <= 0) {
+                currentInput = "Invalid amount.";
+                currentState = ATM_STATE.DISPLAY_WITHDRAWAL_RESULT;
+                displayState();
+                return;
+              }
+              const result = await withdraw(amount);
+              if (result.success) {
+                currentInput = `Withdrawal successful!\nNew Balance: $${result.newBalance}`;
+              } else {
+                currentInput = result.error || "Withdrawal failed.";
+              }
+              currentState = ATM_STATE.DISPLAY_WITHDRAWAL_RESULT;
+              displayState();
+            } else if (value.match(/[0-9.]/)) {
+              currentInput += value;
+              displayState();
+            }
+            break;
+          case ATM_STATE.DEPOSIT_PROMPT:
+            if (value === ".") {
+              currentInput = "";
+              currentState = ATM_STATE.MAIN_MENU;
+              displayState();
+            } else if (value === "E") {
+              if (!currentInput) return;
+              currentState = ATM_STATE.PROCESSING;
+              updateScreen(["Processing deposit..."]);
+              const amount = parseFloat(currentInput);
+              if (isNaN(amount) || amount <= 0) {
+                currentInput = "Invalid amount.";
+                currentState = ATM_STATE.DISPLAY_DEPOSIT_RESULT;
+                displayState();
+                return;
+              }
+              const result = await deposit(amount);
+              if (result.success) {
+                currentInput = `Deposit successful!\nNew Balance: $${result.newBalance}`;
+              } else {
+                currentInput = result.error || "Deposit failed.";
+              }
+              currentState = ATM_STATE.DISPLAY_DEPOSIT_RESULT;
+              displayState();
+            } else if (value.match(/[0-9.]/)) {
+              currentInput += value;
+              displayState();
+            }
+            break;
+        }
+      }
+
+      // Initialize event listeners
+      keypadButtons.forEach((button) => {
+        button.addEventListener("click", (event) => {
+          const value = event.target.dataset.value;
+          handleKeypadClick(value);
+        });
+      });
+
+      // Initialize the ATM
+      displayState();
+    </script>
+  </body>
+</html>
